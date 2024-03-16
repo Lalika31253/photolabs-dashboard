@@ -3,61 +3,74 @@ import React, { Component } from "react";
 import classnames from "classnames";
 import Loading from "./Loading";
 import Panel from "./Panel";
+import { getTotalPhotos, getTotalTopics, getUserWithLeastUploads, getUserWithMostUploads } from "helpers/selectors";
 
 const data = [
   {
     id: 1,
     label: "Total Photos",
-    value: 10
+    getValue: getTotalPhotos
   },
   {
     id: 2,
     label: "Total Topics",
-    value: 4
+    getValue: getTotalTopics
   },
   {
     id: 3,
     label: "User with the most uploads",
-    value: "Allison Saeng"
+    getValue: getUserWithMostUploads
   },
   {
     id: 4,
     label: "User with the least uploads",
-    value: 'Lukas Souz'
+    GetValue: getUserWithLeastUploads
   }
 ];
 
 class Dashboard extends Component {
   state = {
-    loading: false,
+    photos: [],
+    topics: [],
+    loading: true,
     focused: null
-
   };
- /* Instance Method */
-  selectPanel(id) {
-    // this.setState({
-    //   focused: id
-    // });
-    this.setState(previousState => ({
-      focused: previousState.focused !== null ? null : id
-    }));
+
+  componentDidMount() {
+    //fetch API and return response as an element in the array(asynchronous)
+    const urlsPromise = [
+      "/api/photos",
+      "/api/topics",
+    ].map(url => fetch(url).then(response => response.json()));
+
+    Promise.all(urlsPromise)
+    .then(([photos, topics]) => {
+      this.setState({
+        loading: false,
+        photos: photos,
+        topics: topics
+      });
+    });
+
+
+
+    const focused = JSON.parse(localStorage.getItem("focused"));
+
+    if (focused) {
+      this.setState({ focused });
+    }
   }
 
+  componentDidUpdate(previousProps, previousState) {
+    if (previousState.focused !== this.state.focused) {
+      localStorage.setItem("focused", JSON.stringify(this.state.focused));
+    }
+  }
 
-  /* Class Property with Arrow Function */
-  // selectPanel = id => {
-  //   this.setState({
-  //    focused: id
-  //   });
-  // };
-
-
-   /* Class Property with Function expression */
-  //  selectPanel = function(id) {
-  //   this.setState({
-  //    focused: id
-  //   });
-  // };
+    // Define the selectPanel method
+    selectPanel = (panelId) => {
+      this.setState({ focused: panelId });
+    }
 
 
   render() {
@@ -75,7 +88,7 @@ class Dashboard extends Component {
           key={panel.id}
           id={panel.id}
           label={panel.label}
-          value={panel.value}
+          value={panel.getValue(this.state)}
           // onSelect={this.selectPanel}
           onSelect={event => this.selectPanel(panel.id)}
         />
@@ -84,6 +97,31 @@ class Dashboard extends Component {
     return <main className={dashboardClasses}>{panels}</main>
 
   }
+
+//   render() {
+//     const { loading, focused } = this.state;
+//     const dashboardClasses = classnames("dashboard", {
+//       "dashboard--focused": focused !== null
+//     });
+  
+//     if (loading) {
+//       return <Loading />;
+//     }
+  
+//     const filteredData = focused !== null ? data.filter(panel => focused === panel.id) : data;
+//     const panels = filteredData.map(panel => (
+//       <Panel
+//         key={panel.id}
+//         id={panel.id}
+//         label={panel.label}
+//         value={panel.value}
+//         onSelect={() => this.selectPanel(panel.id)}
+//       />
+//     ));
+  
+//     return <main className={dashboardClasses}>{panels}</main>;
+//   }
+
 }
 
 export default Dashboard;
